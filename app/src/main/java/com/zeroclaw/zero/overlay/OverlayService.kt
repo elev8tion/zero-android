@@ -50,6 +50,8 @@ class OverlayService : Service() {
 
     private var tapCount = 0
     private var lastTapTime = 0L
+    private var lastStateChangeTime = 0L           // debounce phantom taps from animation shifts
+    private val TAP_COOLDOWN_MS = 400L             // ignore taps for this long after state change
 
     // ── Voice managers ────────────────────────────────────────────────────────
 
@@ -157,9 +159,15 @@ class OverlayService : Service() {
     // ── Tap logic — triple-tap to start, single tap to finish ──────────────────
 
     private fun handleTap() {
+        // Ignore phantom taps caused by animation/layout shifts
+        val now = System.currentTimeMillis()
+        if (now - lastStateChangeTime < TAP_COOLDOWN_MS) {
+            Log.d(TAG, "Ignoring tap — too soon after state change (${now - lastStateChangeTime}ms)")
+            return
+        }
+
         when (state) {
             State.IDLE -> {
-                val now = System.currentTimeMillis()
                 if (now - lastTapTime > TRIPLE_TAP_WINDOW_MS) {
                     tapCount = 0  // reset — too slow between taps
                 }
@@ -261,6 +269,7 @@ class OverlayService : Service() {
 
     private fun setState(newState: State) {
         state = newState
+        lastStateChangeTime = System.currentTimeMillis()
         handler.post {
             orbView.clearAnimation()
             when (newState) {

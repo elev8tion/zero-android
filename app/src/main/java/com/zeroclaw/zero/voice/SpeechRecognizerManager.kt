@@ -2,6 +2,7 @@ package com.zeroclaw.zero.voice
 
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -20,6 +21,8 @@ class SpeechRecognizerManager(private val context: Context) {
     private var isFirstStart = false  // true only for the initial start, not auto-restarts
     private var generation = 0        // incremented on each new recognizer; stale callbacks are rejected
     private val handler = Handler(Looper.getMainLooper())
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var savedStreamVolume = -1  // original notification volume, restored after session
 
     interface Listener {
         fun onResult(text: String)
@@ -45,6 +48,7 @@ class SpeechRecognizerManager(private val context: Context) {
             accumulatedText.clear()
             isActive = true
             isFirstStart = true
+            muteBeepSounds()
         }
 
         val myGen = ++generation  // capture generation for this recognizer's callbacks
@@ -133,6 +137,7 @@ class SpeechRecognizerManager(private val context: Context) {
 
                     // Fatal or non-push-to-talk error — deliver what we have and stop
                     isActive = false
+                    restoreBeepSounds()
                     val msg = when (error) {
                         SpeechRecognizer.ERROR_AUDIO -> "Audio error"
                         SpeechRecognizer.ERROR_CLIENT -> "Client error"
@@ -209,10 +214,36 @@ class SpeechRecognizerManager(private val context: Context) {
         val finalText = accumulatedText.toString().trim()
         accumulatedText.clear()
         stop()  // generation++ + cancel pending restarts
+        restoreBeepSounds()
         if (finalText.isNotBlank()) {
             listener?.onResult(finalText)
         }
         listener?.onListeningEnded()
+    }
+
+    // ── Mute the beep/boop sounds Android plays on recognizer start/stop ────────
+
+    private fun muteBeepSounds() {
+        try {
+            savedStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
+            audioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0, 0)
+            // Also mute STREAM_MUSIC — some Samsung devices play the tone there
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not mute beep sounds: ${e.message}")
+        }
+    }
+
+    private fun restoreBeepSounds() {
+        try {
+            if (savedStreamVolume >= 0) {
+                audioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, savedStreamVolume, 0)
+                savedStreamVolume = -1
+            }
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not restore beep sounds: ${e.message}")
+        }
     }
 
     companion object {
