@@ -89,7 +89,7 @@ class ZeroApp : Application() {
             // ── Device hardware ─────────────────────────────────────────────────
             register(GetAutoRotateTool(this@ZeroApp))
             register(SetAutoRotateTool(this@ZeroApp))
-            register(GetBluetoothStatusTool())
+            register(GetBluetoothStatusTool(this@ZeroApp))
             register(SetFlashlightTool(this@ZeroApp))
             register(SetRingerModeTool(this@ZeroApp))
             register(GetDndStatusTool(this@ZeroApp))

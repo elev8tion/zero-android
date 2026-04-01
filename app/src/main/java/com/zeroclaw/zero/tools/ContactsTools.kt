@@ -1,10 +1,13 @@
 package com.zeroclaw.zero.tools
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import android.telephony.SmsManager
+import androidx.core.content.ContextCompat
 
 class ListContactsTool(private val context: Context) : Tool {
     override val definition = ToolDefinition(
@@ -18,6 +21,10 @@ class ListContactsTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return ToolResult(false, error = "READ_CONTACTS not granted. Open Zero app → tap Grant Permissions")
+        }
         val limit = params.getInt("limit") ?: 50
         val filter = params.getString("filter")
         return try {
@@ -61,6 +68,10 @@ class SendSmsTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return ToolResult(false, error = "SEND_SMS not granted. Open Zero app → tap Grant Permissions")
+        }
         val number = params.getString("phone_number") ?: return ToolResult(false, error = "Missing param: phone_number")
         val message = params.getString("message") ?: return ToolResult(false, error = "Missing param: message")
         return try {
@@ -89,6 +100,10 @@ class MakeCallTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
+                != PackageManager.PERMISSION_GRANTED) {
+            return ToolResult(false, error = "CALL_PHONE not granted. Open Zero app → tap Grant Permissions")
+        }
         val number = params.getString("phone_number") ?: return ToolResult(false, error = "Missing param: phone_number")
         return try {
             val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")).apply {

@@ -1,6 +1,5 @@
 package com.zeroclaw.zero.ui
 
-import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -26,16 +25,15 @@ class MainActivity : AppCompatActivity() {
         const val ACTION_VOICE_ACTIVATE = "com.zeroclaw.zero.VOICE_ACTIVATE"
         private const val REQ_OVERLAY   = 1001
         private const val REQ_PERMS     = 1002
-        private val REQUIRED_PERMS = arrayOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.POST_NOTIFICATIONS,
-        )
+        private const val REQ_ALL_PERMS = 1003
     }
 
     private lateinit var statusAccessibility: TextView
     private lateinit var statusMcp: TextView
     private lateinit var statusProxy: TextView
+    private lateinit var statusPermissions: TextView
     private lateinit var btnEnableAccessibility: TextView
+    private lateinit var btnGrantPermissions: TextView
     private lateinit var btnOverlay: TextView
     private lateinit var btnSettings: android.widget.ImageView
 
@@ -48,7 +46,9 @@ class MainActivity : AppCompatActivity() {
         statusAccessibility    = findViewById(R.id.statusAccessibility)
         statusMcp              = findViewById(R.id.statusMcp)
         statusProxy            = findViewById(R.id.statusProxy)
+        statusPermissions      = findViewById(R.id.statusPermissions)
         btnEnableAccessibility = findViewById(R.id.btnEnableAccessibility)
+        btnGrantPermissions    = findViewById(R.id.btnGrantPermissions)
         btnOverlay             = findViewById(R.id.btnOverlay)
         btnSettings            = findViewById(R.id.btnSettings)
 
@@ -61,6 +61,8 @@ class MainActivity : AppCompatActivity() {
         btnEnableAccessibility.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
+
+        btnGrantPermissions.setOnClickListener { requestAllPermissions() }
 
         btnOverlay.setOnClickListener { toggleOverlay() }
     }
@@ -75,6 +77,33 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == REQ_OVERLAY && Settings.canDrawOverlays(this)) {
             launchOverlay()
         }
+    }
+
+    // ── Permission grant flow ────────────────────────────────────────────────
+
+    private fun requestAllPermissions() {
+        // 1) Request all missing dangerous permissions in one batch
+        val missing = PermissionManager.getMissingDangerousPermissions(this)
+        if (missing.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missing.toTypedArray(), REQ_ALL_PERMS)
+            return
+        }
+        // 2) All dangerous granted — chain to special permissions
+        requestSpecialPermissions()
+    }
+
+    private fun requestSpecialPermissions() {
+        if (!PermissionManager.canWriteSettings(this)) {
+            Toast.makeText(this, "Grant 'Modify system settings' permission", Toast.LENGTH_LONG).show()
+            startActivity(PermissionManager.writeSettingsIntent(this))
+            return
+        }
+        if (!PermissionManager.hasDndAccess(this)) {
+            Toast.makeText(this, "Grant 'Do Not Disturb access' permission", Toast.LENGTH_LONG).show()
+            startActivity(PermissionManager.dndAccessIntent())
+            return
+        }
+        Toast.makeText(this, "All permissions granted", Toast.LENGTH_SHORT).show()
     }
 
     // ── Overlay toggle ────────────────────────────────────────────────────────
@@ -96,12 +125,12 @@ class MainActivity : AppCompatActivity() {
                 )
                 return
             }
-            // Check runtime permissions (microphone + notifications)
-            val missing = REQUIRED_PERMS.filter {
-                ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-            }
-            if (missing.isNotEmpty()) {
-                ActivityCompat.requestPermissions(this, missing.toTypedArray(), REQ_PERMS)
+            // Check core runtime permissions (microphone + notifications)
+            val coreMissing = PermissionManager.getMissingDangerousPermissions(this)
+                .filter { it == android.Manifest.permission.RECORD_AUDIO ||
+                          it == android.Manifest.permission.POST_NOTIFICATIONS }
+            if (coreMissing.isNotEmpty()) {
+                ActivityCompat.requestPermissions(this, coreMissing.toTypedArray(), REQ_PERMS)
                 return
             }
             launchOverlay()
@@ -110,11 +139,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ_PERMS) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                launchOverlay()
-            } else {
-                Toast.makeText(this, "Microphone permission required for voice control", Toast.LENGTH_LONG).show()
+        when (requestCode) {
+            REQ_PERMS -> {
+                if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    launchOverlay()
+                } else {
+                    Toast.makeText(this, "Microphone permission required for voice control", Toast.LENGTH_LONG).show()
+                }
+            }
+            REQ_ALL_PERMS -> {
+                updateStatus()
+                // Chain to special permissions regardless — some dangerous may have been denied
+                requestSpecialPermissions()
             }
         }
     }
@@ -157,6 +193,19 @@ class MainActivity : AppCompatActivity() {
             if (proxyUrl.contains("YOUR_MAC_IP")) getColor(R.color.error)
             else getColor(R.color.text_primary)
         )
+
+        // Permissions
+        val granted = PermissionManager.grantedCount(this)
+        val total = PermissionManager.TOTAL_COUNT
+        if (granted == total) {
+            statusPermissions.text = "● $granted/$total Granted"
+            statusPermissions.setTextColor(getColor(R.color.secondary))
+            btnGrantPermissions.visibility = View.GONE
+        } else {
+            statusPermissions.text = "● $granted/$total — Tap to grant"
+            statusPermissions.setTextColor(getColor(R.color.error))
+            btnGrantPermissions.visibility = View.VISIBLE
+        }
 
         // Overlay button label
         val overlayRunning = prefs.getBoolean("overlay_running", false)

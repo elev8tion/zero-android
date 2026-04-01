@@ -1,8 +1,10 @@
 package com.zeroclaw.zero.tools
 
+import android.Manifest
 import android.app.NotificationManager
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.camera2.CameraManager
 import android.location.Geocoder
 import android.location.LocationManager
@@ -10,6 +12,7 @@ import android.media.AudioManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.core.content.ContextCompat
 import java.util.Locale
 
 private const val TAG = "DeviceTools"
@@ -43,6 +46,9 @@ class SetAutoRotateTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (!Settings.System.canWrite(context)) {
+            return ToolResult(false, error = "WRITE_SETTINGS not granted. Open Zero app → tap Grant Permissions")
+        }
         val enabled = params["enabled"] as? Boolean
             ?: (params.getString("enabled")?.equals("true", true))
             ?: return ToolResult(false, error = "Missing param: enabled")
@@ -51,12 +57,12 @@ class SetAutoRotateTool(private val context: Context) : Tool {
                 "accelerometer_rotation", if (enabled) 1 else 0)
             ToolResult(true, """{"success":true}""")
         } catch (e: Exception) {
-            ToolResult(false, error = "Failed — WRITE_SETTINGS may be needed: ${e.message}")
+            ToolResult(false, error = "Failed: ${e.message}")
         }
     }
 }
 
-class GetBluetoothStatusTool : Tool {
+class GetBluetoothStatusTool(private val context: Context) : Tool {
     override val definition = ToolDefinition(
         name = "get_bluetooth_status",
         description = "Check if Bluetooth is enabled and list paired devices",
@@ -65,6 +71,11 @@ class GetBluetoothStatusTool : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            return ToolResult(false, error = "BLUETOOTH_CONNECT not granted. Open Zero app → tap Grant Permissions")
+        }
         return try {
             val adapter = BluetoothAdapter.getDefaultAdapter()
             if (adapter == null) {
@@ -121,14 +132,21 @@ class SetRingerModeTool(private val context: Context) : Tool {
 
     override fun execute(params: Map<String, Any?>): ToolResult {
         val mode = params.getString("mode") ?: return ToolResult(false, error = "Missing param: mode")
-        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val ringerMode = when (mode.lowercase()) {
             "normal"  -> AudioManager.RINGER_MODE_NORMAL
             "vibrate" -> AudioManager.RINGER_MODE_VIBRATE
             "silent"  -> AudioManager.RINGER_MODE_SILENT
             else      -> return ToolResult(false, error = "Invalid mode: $mode (use normal/vibrate/silent)")
         }
+        // Silent mode requires DND access on most devices
+        if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (!nm.isNotificationPolicyAccessGranted) {
+                return ToolResult(false, error = "DND access not granted. Open Zero app → tap Grant Permissions")
+            }
+        }
         return try {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             am.ringerMode = ringerMode
             ToolResult(true, """{"success":true,"mode":"$mode"}""")
         } catch (e: Exception) {
@@ -174,6 +192,10 @@ class SetDndModeTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (!nm.isNotificationPolicyAccessGranted) {
+            return ToolResult(false, error = "DND access not granted. Open Zero app → tap Grant Permissions")
+        }
         val mode = params.getString("mode") ?: return ToolResult(false, error = "Missing param: mode")
         val filter = when (mode.lowercase()) {
             "off"            -> NotificationManager.INTERRUPTION_FILTER_ALL
@@ -183,7 +205,6 @@ class SetDndModeTool(private val context: Context) : Tool {
             else -> return ToolResult(false, error = "Invalid mode: $mode")
         }
         return try {
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.setInterruptionFilter(filter)
             ToolResult(true, """{"success":true,"mode":"$mode"}""")
         } catch (e: Exception) {
@@ -202,6 +223,10 @@ class GetLocationTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            return ToolResult(false, error = "ACCESS_FINE_LOCATION not granted. Open Zero app → tap Grant Permissions")
+        }
         return try {
             val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val providers = listOf(

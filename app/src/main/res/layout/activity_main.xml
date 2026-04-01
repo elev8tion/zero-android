@@ -113,7 +113,7 @@
                 android:orientation="vertical"
                 android:background="@drawable/bg_settings_input"
                 android:padding="16dp"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="12dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -136,6 +136,36 @@
                     android:fontFamily="monospace" />
             </LinearLayout>
 
+            <!-- Permissions card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_settings_input"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Permissions"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:id="@+id/statusPermissions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● Checking..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
+
             <!-- Enable accessibility button (shown only when service is off) -->
             <TextView
                 android:id="@+id/btnEnableAccessibility"
@@ -144,6 +174,20 @@
                 android:gravity="center"
                 android:background="@drawable/bg_pair_button"
                 android:text="Enable Accessibility Service"
+                android:textColor="@color/black"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone" />
+
+            <!-- Grant Permissions button (shown only when permissions are missing) -->
+            <TextView
+                android:id="@+id/btnGrantPermissions"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:gravity="center"
+                android:background="@drawable/bg_pair_button"
+                android:text="Grant Permissions"
                 android:textColor="@color/black"
                 android:textSize="15sp"
                 android:textStyle="bold"

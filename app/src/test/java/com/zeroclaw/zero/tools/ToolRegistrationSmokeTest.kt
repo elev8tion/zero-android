@@ -74,7 +74,7 @@ class ToolRegistrationSmokeTest {
             // ── Device hardware (8) ─────────────────────────────────────────
             register(GetAutoRotateTool(context))
             register(SetAutoRotateTool(context))
-            register(GetBluetoothStatusTool())
+            register(GetBluetoothStatusTool(context))
             register(SetFlashlightTool(context))
             register(SetRingerModeTool(context))
             register(GetDndStatusTool(context))

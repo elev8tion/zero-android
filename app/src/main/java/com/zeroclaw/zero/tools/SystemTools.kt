@@ -42,6 +42,9 @@ class SetBrightnessTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (!Settings.System.canWrite(context)) {
+            return ToolResult(false, error = "WRITE_SETTINGS not granted. Open Zero app → tap Grant Permissions")
+        }
         return try {
             val autoOn = params["auto"] as? Boolean
                 ?: (params.getString("auto")?.equals("true", true))
@@ -61,7 +64,7 @@ class SetBrightnessTool(private val context: Context) : Tool {
                 Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
             ToolResult(true, """{"success":true,"brightness_percent":$pct,"brightness_raw":$raw}""")
         } catch (e: Exception) {
-            ToolResult(false, error = "Failed — WRITE_SETTINGS may be needed: ${e.message}")
+            ToolResult(false, error = "Failed: ${e.message}")
         }
     }
 }
@@ -177,6 +180,9 @@ class SetScreenTimeoutTool(private val context: Context) : Tool {
     )
 
     override fun execute(params: Map<String, Any?>): ToolResult {
+        if (!Settings.System.canWrite(context)) {
+            return ToolResult(false, error = "WRITE_SETTINGS not granted. Open Zero app → tap Grant Permissions")
+        }
         val secs = params.getInt("timeout_seconds")
             ?: params.getInt("seconds")
             ?: return ToolResult(false, error = "Missing param: timeout_seconds")
@@ -185,7 +191,7 @@ class SetScreenTimeoutTool(private val context: Context) : Tool {
                 Settings.System.SCREEN_OFF_TIMEOUT, secs * 1000)
             ToolResult(true, """{"success":true,"timeout_seconds":$secs}""")
         } catch (e: Exception) {
-            ToolResult(false, error = "Failed — WRITE_SETTINGS may be needed: ${e.message}")
+            ToolResult(false, error = "Failed: ${e.message}")
         }
     }
 }
