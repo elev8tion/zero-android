@@ -1,0 +1,42 @@
+# Built outputs
+*.iml
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+/build/
+/app/build/
+/captures/
+
+# Gradle
+.gradle/
+/gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iws
+*.ipr
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Secrets — never commit
+*.keystore
+*.jks
+.env
+*.env.*
+google-services.json

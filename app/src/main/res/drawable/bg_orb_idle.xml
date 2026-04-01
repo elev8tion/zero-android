@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Outer soft glow -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="40dp"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#3300D4FF"
+                android:endColor="#00000000" />
+            <size android:width="80dp" android:height="80dp" />
+        </shape>
+    </item>
+
+    <!-- Ring stroke -->
+    <item android:left="8dp" android:top="8dp" android:right="8dp" android:bottom="8dp">
+        <shape android:shape="oval">
+            <stroke android:width="2dp" android:color="#8800D4FF" />
+            <solid android:color="#E6080808" />
+            <size android:width="64dp" android:height="64dp" />
+        </shape>
+    </item>
+
+    <!-- Center dot -->
+    <item android:left="32dp" android:top="32dp" android:right="32dp" android:bottom="32dp">
+        <shape android:shape="oval">
+            <solid android:color="#AA00D4FF" />
+            <size android:width="16dp" android:height="16dp" />
+        </shape>
+    </item>
+
+</layer-list>

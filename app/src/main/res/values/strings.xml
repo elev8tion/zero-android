@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Zero</string>
+    <string name="widget_name">Zero Assistant</string>
+
+    <!-- Main -->
+    <string name="hint_message">Message Zero…</string>
+    <string name="btn_send">Send</string>
+    <string name="btn_mic">Voice</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_listening">Listening…</string>
+    <string name="status_thinking">Thinking…</string>
+    <string name="status_working">Working… %1$ds</string>
+    <string name="status_speaking">Speaking…</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Gateway Settings</string>
+    <string name="settings_gateway_url">Gateway URL</string>
+    <string name="settings_gateway_hint">https://gateway.ay8.app</string>
+    <string name="settings_token">Bearer Token</string>
+    <string name="settings_token_hint">zc_local_dev_2026</string>
+    <string name="settings_save">Save</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Tap to activate Zero voice assistant</string>
+    <string name="widget_tap">Tap to speak</string>
+
+    <!-- Errors -->
+    <string name="error_no_connection">Cannot reach gateway</string>
+    <string name="error_pairing_failed">Pairing failed</string>
+    <string name="error_mic_permission">Microphone permission required for voice</string>
+    <string name="error_speech_unavailable">Speech recognition unavailable</string>
+</resources>
