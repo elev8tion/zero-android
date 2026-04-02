@@ -2,10 +2,12 @@ package com.zeroclaw.zero
 
 import android.app.Application
 import android.util.Log
+import androidx.work.*
 import com.zeroclaw.zero.agent.AgentLoop
 import com.zeroclaw.zero.data.AppPrefs
 import com.zeroclaw.zero.data.ErrorDatabase
 import com.zeroclaw.zero.data.T0gglesClient
+import com.zeroclaw.zero.data.TaskCheckWorker
 import com.zeroclaw.zero.tools.*
 import com.zeroclaw.zero.tools.ToolRegistry
 import com.zeroclaw.zero.voice.TextToSpeechManager
@@ -13,14 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class ZeroApp : Application() {
-
-    companion object {
-        private const val TAG = "ZeroApp"
-        @Volatile lateinit var instance: ZeroApp
-            private set
-    }
 
     lateinit var prefs: AppPrefs
         private set
@@ -33,6 +30,8 @@ class ZeroApp : Application() {
     lateinit var t0gglesClient: T0gglesClient
         private set
     lateinit var errorDatabase: ErrorDatabase
+        private set
+    lateinit var scheduledAgentLoop: AgentLoop
         private set
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -57,14 +56,59 @@ class ZeroApp : Application() {
         toolRegistry.register(ListWorkflowsTool())
         toolRegistry.register(RunWorkflowTool(t0gglesClient, prefs))
 
+        scheduledAgentLoop = AgentLoop()
+
         // Discover and register T0ggles workflow tools in background
         appScope.launch { registerT0gglesTools() }
+
+        syncScheduledTaskWork()
     }
 
     override fun onTerminate() {
         agentLoop.cancel()
+        scheduledAgentLoop.cancel()
         ttsManager.shutdown()
         super.onTerminate()
+    }
+
+    /**
+     * Enqueue or cancel periodic TaskCheckWorker based on prefs.scheduledTasksEnabled.
+     * Safe to call repeatedly — uses ExistingPeriodicWorkPolicy.UPDATE.
+     */
+    fun syncScheduledTaskWork() {
+        val wm = try {
+            WorkManager.getInstance(this)
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "WorkManager not initialized, skipping schedule sync")
+            return
+        }
+        if (prefs.scheduledTasksEnabled) {
+            val hours = prefs.scheduledTaskIntervalHours.toLong().coerceAtLeast(1)
+            val request = PeriodicWorkRequestBuilder<TaskCheckWorker>(hours, TimeUnit.HOURS)
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+                .build()
+            wm.enqueueUniquePeriodicWork(
+                WORK_NAME_TASK_CHECK,
+                ExistingPeriodicWorkPolicy.UPDATE,
+                request
+            )
+            Log.i(TAG, "Scheduled task check every ${hours}h")
+        } else {
+            wm.cancelUniqueWork(WORK_NAME_TASK_CHECK)
+            Log.i(TAG, "Cancelled scheduled task check")
+        }
+    }
+
+    companion object {
+        private const val TAG = "ZeroApp"
+        private const val WORK_NAME_TASK_CHECK = "zero_task_check"
+        @Volatile lateinit var instance: ZeroApp
+            private set
     }
 
     /**

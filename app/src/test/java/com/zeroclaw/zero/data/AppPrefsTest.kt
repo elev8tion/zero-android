@@ -94,6 +94,45 @@ class AppPrefsTest {
         assertEquals(special, prefs.lastResponse)
     }
 
+    // ── Scheduled task preferences ───────────────────────────────────────────────
+
+    @Test
+    fun `default scheduledTasksEnabled is false`() {
+        assertFalse(prefs.scheduledTasksEnabled)
+    }
+
+    @Test
+    fun `default scheduledTaskIntervalHours is 1`() {
+        assertEquals(1, prefs.scheduledTaskIntervalHours)
+    }
+
+    @Test
+    fun `default scheduledAutoExecute is false`() {
+        assertFalse(prefs.scheduledAutoExecute)
+    }
+
+    @Test
+    fun `set and get scheduledTasksEnabled roundtrip`() {
+        prefs.scheduledTasksEnabled = true
+        assertTrue(prefs.scheduledTasksEnabled)
+        prefs.scheduledTasksEnabled = false
+        assertFalse(prefs.scheduledTasksEnabled)
+    }
+
+    @Test
+    fun `set and get scheduledTaskIntervalHours roundtrip`() {
+        prefs.scheduledTaskIntervalHours = 6
+        assertEquals(6, prefs.scheduledTaskIntervalHours)
+    }
+
+    @Test
+    fun `set and get scheduledAutoExecute roundtrip`() {
+        prefs.scheduledAutoExecute = true
+        assertTrue(prefs.scheduledAutoExecute)
+        prefs.scheduledAutoExecute = false
+        assertFalse(prefs.scheduledAutoExecute)
+    }
+
     // ── Persistence across instances ────────────────────────────────────────────
 
     @Test

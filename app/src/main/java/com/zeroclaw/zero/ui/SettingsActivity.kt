@@ -8,8 +8,11 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.zeroclaw.zero.R
 import com.zeroclaw.zero.ZeroApp
+import com.zeroclaw.zero.data.TaskCheckWorker
 import com.zeroclaw.zero.mcp.MCP_PORT
 import com.zeroclaw.zero.mcp.McpServerService
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +34,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnRefreshTools: TextView
     private lateinit var t0gglesStatusLabel: TextView
 
+    private lateinit var scheduledStatusLabel: TextView
+    private lateinit var btnScheduledToggle: TextView
+    private lateinit var inputScheduledInterval: EditText
+    private lateinit var btnAutoExecuteToggle: TextView
+    private lateinit var btnCheckNow: TextView
+
     private lateinit var prefs: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,26 +60,38 @@ class SettingsActivity : AppCompatActivity() {
         btnRefreshTools     = findViewById(R.id.btnRefreshTools)
         t0gglesStatusLabel  = findViewById(R.id.t0gglesStatusLabel)
 
+        scheduledStatusLabel  = findViewById(R.id.scheduledStatusLabel)
+        btnScheduledToggle    = findViewById(R.id.btnScheduledToggle)
+        inputScheduledInterval = findViewById(R.id.inputScheduledInterval)
+        btnAutoExecuteToggle  = findViewById(R.id.btnAutoExecuteToggle)
+        btnCheckNow           = findViewById(R.id.btnCheckNow)
+
         inputProxyUrl.setText(ZeroApp.instance.prefs.proxyUrl)
 
         val appPrefs = ZeroApp.instance.prefs
         inputT0gglesApiKey.setText(appPrefs.t0gglesApiKey)
         inputT0gglesBoardId.setText(appPrefs.t0gglesBoardId)
         inputT0gglesUrl.setText(appPrefs.t0gglesUrl)
+        inputScheduledInterval.setText(appPrefs.scheduledTaskIntervalHours.toString())
 
         btnSave.setOnClickListener { save() }
         mcpToggle.setOnClickListener { toggleMcpServer() }
         btnSaveT0ggles.setOnClickListener { saveT0ggles() }
         btnRefreshTools.setOnClickListener { refreshT0gglesTools() }
+        btnScheduledToggle.setOnClickListener { toggleScheduledChecks() }
+        btnAutoExecuteToggle.setOnClickListener { toggleAutoExecute() }
+        btnCheckNow.setOnClickListener { checkNow() }
 
         updateMcpUi()
         updateT0gglesUi()
+        updateScheduledUi()
     }
 
     override fun onResume() {
         super.onResume()
         updateMcpUi()
         updateT0gglesUi()
+        updateScheduledUi()
     }
 
     private fun save() {
@@ -162,6 +183,60 @@ class SettingsActivity : AppCompatActivity() {
         } else {
             "Workflow tools not loaded"
         }
+    }
+
+    // ── Scheduled Tasks ──────────────────────────────────────────────────────
+
+    private fun toggleScheduledChecks() {
+        val appPrefs = ZeroApp.instance.prefs
+        val newState = !appPrefs.scheduledTasksEnabled
+
+        // Save interval before toggling
+        val intervalStr = inputScheduledInterval.text.toString().trim()
+        val interval = intervalStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
+        appPrefs.scheduledTaskIntervalHours = interval
+
+        appPrefs.scheduledTasksEnabled = newState
+        ZeroApp.instance.syncScheduledTaskWork()
+        updateScheduledUi()
+
+        val msg = if (newState) "Scheduled checks enabled" else "Scheduled checks disabled"
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toggleAutoExecute() {
+        val appPrefs = ZeroApp.instance.prefs
+        val newState = !appPrefs.scheduledAutoExecute
+        appPrefs.scheduledAutoExecute = newState
+        updateScheduledUi()
+
+        val msg = if (newState) "Auto-execute enabled" else "Auto-execute disabled"
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun checkNow() {
+        WorkManager.getInstance(this)
+            .enqueue(OneTimeWorkRequestBuilder<TaskCheckWorker>().build())
+        Toast.makeText(this, "Task check queued", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateScheduledUi() {
+        val appPrefs = ZeroApp.instance.prefs
+        val enabled = appPrefs.scheduledTasksEnabled
+        val hours = appPrefs.scheduledTaskIntervalHours
+        val autoExec = appPrefs.scheduledAutoExecute
+
+        scheduledStatusLabel.text = if (enabled) {
+            "Scheduled every ${hours}h" + if (autoExec) " (auto-execute ON)" else ""
+        } else {
+            "Disabled"
+        }
+
+        btnScheduledToggle.text = if (enabled) "Disable Scheduled Checks"
+                                  else "Enable Scheduled Checks"
+
+        btnAutoExecuteToggle.text = if (autoExec) "Disable Auto-Execute"
+                                    else "Enable Auto-Execute"
     }
 
     private fun getLanIp(): String {

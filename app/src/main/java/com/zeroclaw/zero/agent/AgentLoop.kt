@@ -44,6 +44,9 @@ class AgentLoop {
 
     var listener: Listener? = null
 
+    /** Whether the loop is currently processing a request. */
+    val isRunning: Boolean get() = running
+
     // ── Internals ─────────────────────────────────────────────────────────────
 
     private val scope  = CoroutineScope(Dispatchers.IO + SupervisorJob())
