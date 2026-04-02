@@ -9,7 +9,7 @@ import android.content.SharedPreferences
  * Stores:
  *  - proxyUrl     : the claude-session-proxy Ollama endpoint on the Mac
  *  - lastResponse : last assistant text, used by the home-screen widget
- *  - t0gglesApiKey, t0gglesBoardId, t0gglesUrl : T0ggles MCP workflow integration
+ *  - t0gglesApiKey, t0gglesBoardId, t0gglesProjectId, t0gglesUrl : T0ggles MCP workflow integration
  */
 class AppPrefs(context: Context) {
 
@@ -36,6 +36,11 @@ class AppPrefs(context: Context) {
         get() = prefs.getString(KEY_T0GGLES_BOARD_ID, DEFAULT_T0GGLES_BOARD_ID) ?: DEFAULT_T0GGLES_BOARD_ID
         set(value) = prefs.edit().putString(KEY_T0GGLES_BOARD_ID, value).apply()
 
+    /** T0ggles project ID — used by bulk-create-tasks in workflow templates. */
+    var t0gglesProjectId: String
+        get() = prefs.getString(KEY_T0GGLES_PROJECT_ID, DEFAULT_T0GGLES_PROJECT_ID) ?: DEFAULT_T0GGLES_PROJECT_ID
+        set(value) = prefs.edit().putString(KEY_T0GGLES_PROJECT_ID, value).apply()
+
     /** T0ggles MCP endpoint URL. */
     var t0gglesUrl: String
         get() = prefs.getString(KEY_T0GGLES_URL, DEFAULT_T0GGLES_URL) ?: DEFAULT_T0GGLES_URL
@@ -46,11 +51,13 @@ class AppPrefs(context: Context) {
         private const val KEY_LAST_RESPONSE   = "last_response"
         private const val KEY_T0GGLES_API_KEY  = "t0ggles_api_key"
         private const val KEY_T0GGLES_BOARD_ID = "t0ggles_board_id"
+        private const val KEY_T0GGLES_PROJECT_ID = "t0ggles_project_id"
         private const val KEY_T0GGLES_URL      = "t0ggles_url"
 
-        const val DEFAULT_PROXY_URL         = "http://127.0.0.1:11435"
-        const val DEFAULT_T0GGLES_API_KEY   = "t0mcp_7I7tsurzGMBjOWJvARFHSfyAG0hFN4Oy"
-        const val DEFAULT_T0GGLES_BOARD_ID  = "3asoYa8WGR9whoNU1flF"
-        const val DEFAULT_T0GGLES_URL       = "https://t0ggles.com/mcp"
+        const val DEFAULT_PROXY_URL           = "http://127.0.0.1:11435"
+        const val DEFAULT_T0GGLES_API_KEY     = "t0mcp_7I7tsurzGMBjOWJvARFHSfyAG0hFN4Oy"
+        const val DEFAULT_T0GGLES_BOARD_ID    = "3asoYa8WGR9whoNU1flF"
+        const val DEFAULT_T0GGLES_PROJECT_ID  = "wrFqBDcWtAc9uZ1LmH4b"
+        const val DEFAULT_T0GGLES_URL         = "https://t0ggles.com/mcp"
     }
 }

@@ -53,6 +53,10 @@ class ZeroApp : Application() {
         // Register the query_error_log tool (local, no T0ggles needed)
         toolRegistry.register(QueryErrorLogTool(errorDatabase))
 
+        // Register workflow template tools
+        toolRegistry.register(ListWorkflowsTool())
+        toolRegistry.register(RunWorkflowTool(t0gglesClient, prefs))
+
         // Discover and register T0ggles workflow tools in background
         appScope.launch { registerT0gglesTools() }
     }

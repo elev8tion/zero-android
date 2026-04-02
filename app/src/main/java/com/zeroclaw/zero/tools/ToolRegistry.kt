@@ -93,7 +93,8 @@ class ToolRegistry(private val context: Context) {
                                        "milestone", "note", "error", "log", "create task",
                                        "update task", "next task", "standup", "report",
                                        "workload", "overdue", "blocked", "dependency",
-                                       "comment", "status", "t0ggles", "toggles", "project")
+                                       "comment", "status", "t0ggles", "toggles", "project",
+                                       "template", "pipeline", "deploy", "triage")
 
         val wanted = core.toMutableSet()
 

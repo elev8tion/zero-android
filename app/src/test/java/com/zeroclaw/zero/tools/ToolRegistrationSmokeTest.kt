@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Smoke test: registers all 47 tools exactly as ZeroApp does,
+ * Smoke test: registers all 49 tools exactly as ZeroApp does,
  * validates schemas, checks for duplicates, and verifies graceful
  * error handling when the accessibility service is not running.
  */
@@ -95,7 +95,7 @@ class ToolRegistrationSmokeTest {
             register(SendSmsTool(context))
             register(MakeCallTool(context))
 
-            // ── Workflow: error log (1) ─────────────────────────────────────
+            // ── Workflow (3) ──────────────────────────────────────────────────
             val prefs = AppPrefs(context)
             val noOpTransport = JsonRpcTransport { _, _, _ ->
                 throw T0gglesException("Not connected")
@@ -104,14 +104,16 @@ class ToolRegistrationSmokeTest {
             val testScope = TestScope(UnconfinedTestDispatcher())
             val errorDb = ErrorDatabase(client, prefs, testScope)
             register(QueryErrorLogTool(errorDb))
+            register(ListWorkflowsTool())
+            register(RunWorkflowTool(client, prefs))
         }
     }
 
     // ── Registration count ──────────────────────────────────────────────────
 
     @Test
-    fun `all 47 tools registered`() {
-        assertEquals(47, registry.toolCount())
+    fun `all 49 tools registered`() {
+        assertEquals(49, registry.toolCount())
     }
 
     // ── Name uniqueness ─────────────────────────────────────────────────────
@@ -184,7 +186,9 @@ class ToolRegistrationSmokeTest {
             // Contacts
             "list_contacts", "send_sms", "make_call",
             // Workflow
-            "query_error_log"
+            "query_error_log",
+            "list_workflows",
+            "run_workflow"
         )
 
         expected.forEach { name ->
@@ -354,11 +358,11 @@ class ToolRegistrationSmokeTest {
     }
 
     @Test
-    fun `generic query does not include all 47 tools`() {
+    fun `generic query does not include all 49 tools`() {
         val result = registry.getToolsForQuery("hello there")
         assertTrue(
             "Generic query should return fewer tools (got ${result.size})",
-            result.size < 47
+            result.size < 49
         )
     }
 }
