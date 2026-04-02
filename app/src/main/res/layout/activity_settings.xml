@@ -114,4 +114,140 @@
         android:textStyle="bold"
         android:fontFamily="monospace" />
 
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="24dp"
+        android:background="@color/text_secondary"
+        android:alpha="0.2" />
+
+    <!-- T0ggles Workflow section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="T0ggles Workflow"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="6dp" />
+
+    <TextView
+        android:id="@+id/t0gglesStatusLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Workflow tools not loaded"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="12dp" />
+
+    <!-- T0ggles API Key -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="API Key"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/inputT0gglesApiKey"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_settings_input"
+        android:hint="t0mcp_..."
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_secondary"
+        android:textSize="15sp"
+        android:paddingHorizontal="16dp"
+        android:singleLine="true"
+        android:inputType="textPassword" />
+
+    <!-- T0ggles Board ID -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Board ID"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/inputT0gglesBoardId"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_settings_input"
+        android:hint="board ID"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_secondary"
+        android:textSize="15sp"
+        android:paddingHorizontal="16dp"
+        android:singleLine="true"
+        android:inputType="text" />
+
+    <!-- T0ggles URL -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MCP URL"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/inputT0gglesUrl"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_settings_input"
+        android:hint="https://t0ggles.com/mcp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_secondary"
+        android:textSize="15sp"
+        android:paddingHorizontal="16dp"
+        android:singleLine="true"
+        android:inputType="textUri" />
+
+    <!-- T0ggles buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:id="@+id/btnSaveT0ggles"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_pair_button"
+            android:gravity="center"
+            android:text="Save T0ggles"
+            android:textColor="@color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnRefreshTools"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_settings_input"
+            android:gravity="center"
+            android:text="Refresh Tools"
+            android:textColor="@color/primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+
+    </LinearLayout>
+
 </LinearLayout>

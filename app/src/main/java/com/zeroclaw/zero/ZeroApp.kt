@@ -1,15 +1,23 @@
 package com.zeroclaw.zero
 
 import android.app.Application
+import android.util.Log
 import com.zeroclaw.zero.agent.AgentLoop
 import com.zeroclaw.zero.data.AppPrefs
+import com.zeroclaw.zero.data.ErrorDatabase
+import com.zeroclaw.zero.data.T0gglesClient
 import com.zeroclaw.zero.tools.*
 import com.zeroclaw.zero.tools.ToolRegistry
 import com.zeroclaw.zero.voice.TextToSpeechManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class ZeroApp : Application() {
 
     companion object {
+        private const val TAG = "ZeroApp"
         @Volatile lateinit var instance: ZeroApp
             private set
     }
@@ -22,20 +30,55 @@ class ZeroApp : Application() {
         private set
     lateinit var agentLoop: AgentLoop
         private set
+    lateinit var t0gglesClient: T0gglesClient
+        private set
+    lateinit var errorDatabase: ErrorDatabase
+        private set
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        instance    = this
-        prefs       = AppPrefs(this)
-        ttsManager  = TextToSpeechManager(this)
+        instance     = this
+        prefs        = AppPrefs(this)
+        ttsManager   = TextToSpeechManager(this)
         toolRegistry = buildToolRegistry()
-        agentLoop   = AgentLoop()
+        agentLoop    = AgentLoop()
+
+        // Initialize T0ggles client and error database
+        t0gglesClient = T0gglesClient(prefs)
+        errorDatabase = ErrorDatabase(t0gglesClient, prefs, appScope)
+        toolRegistry.errorDatabase = errorDatabase
+
+        // Register the query_error_log tool (local, no T0ggles needed)
+        toolRegistry.register(QueryErrorLogTool(errorDatabase))
+
+        // Discover and register T0ggles workflow tools in background
+        appScope.launch { registerT0gglesTools() }
     }
 
     override fun onTerminate() {
         agentLoop.cancel()
         ttsManager.shutdown()
         super.onTerminate()
+    }
+
+    /**
+     * Discover all T0ggles MCP tools and register them as proxy tools.
+     * Called on a background thread at startup — failures are logged, not fatal.
+     */
+    suspend fun registerT0gglesTools() {
+        try {
+            t0gglesClient.initialize()
+            val remoteDefs = t0gglesClient.discoverTools()
+            for (def in remoteDefs) {
+                val proxy = T0gglesProxyTool.fromRemoteDef(t0gglesClient, def, prefs)
+                toolRegistry.register(proxy)
+            }
+            Log.i(TAG, "Registered ${remoteDefs.size} T0ggles workflow tools")
+        } catch (e: Exception) {
+            Log.w(TAG, "T0ggles discovery failed: ${e.message} — workflow tools unavailable")
+        }
     }
 
     private fun buildToolRegistry(): ToolRegistry {

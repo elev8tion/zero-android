@@ -3,6 +3,14 @@ package com.zeroclaw.zero.tools
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
+import com.zeroclaw.zero.data.AppPrefs
+import com.zeroclaw.zero.data.ErrorDatabase
+import com.zeroclaw.zero.data.JsonRpcTransport
+import com.zeroclaw.zero.data.T0gglesClient
+import com.zeroclaw.zero.data.T0gglesException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -11,10 +19,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Smoke test: registers all 46 tools exactly as ZeroApp does,
+ * Smoke test: registers all 47 tools exactly as ZeroApp does,
  * validates schemas, checks for duplicates, and verifies graceful
  * error handling when the accessibility service is not running.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], manifest = Config.NONE)
 class ToolRegistrationSmokeTest {
@@ -85,14 +94,24 @@ class ToolRegistrationSmokeTest {
             register(ListContactsTool(context))
             register(SendSmsTool(context))
             register(MakeCallTool(context))
+
+            // ── Workflow: error log (1) ─────────────────────────────────────
+            val prefs = AppPrefs(context)
+            val noOpTransport = JsonRpcTransport { _, _, _ ->
+                throw T0gglesException("Not connected")
+            }
+            val client = T0gglesClient(prefs, noOpTransport)
+            val testScope = TestScope(UnconfinedTestDispatcher())
+            val errorDb = ErrorDatabase(client, prefs, testScope)
+            register(QueryErrorLogTool(errorDb))
         }
     }
 
     // ── Registration count ──────────────────────────────────────────────────
 
     @Test
-    fun `all 46 tools registered`() {
-        assertEquals(46, registry.toolCount())
+    fun `all 47 tools registered`() {
+        assertEquals(47, registry.toolCount())
     }
 
     // ── Name uniqueness ─────────────────────────────────────────────────────
@@ -163,7 +182,9 @@ class ToolRegistrationSmokeTest {
             "set_flashlight", "set_ringer_mode", "get_dnd_status",
             "set_dnd_mode", "get_location",
             // Contacts
-            "list_contacts", "send_sms", "make_call"
+            "list_contacts", "send_sms", "make_call",
+            // Workflow
+            "query_error_log"
         )
 
         expected.forEach { name ->
@@ -184,6 +205,7 @@ class ToolRegistrationSmokeTest {
         assertTrue("system" in categories)
         assertTrue("device" in categories)
         assertTrue("contacts" in categories)
+        assertTrue("workflow" in categories)
     }
 
     // ── Schema serialization ────────────────────────────────────────────────
@@ -332,11 +354,11 @@ class ToolRegistrationSmokeTest {
     }
 
     @Test
-    fun `generic query does not include all 46 tools`() {
+    fun `generic query does not include all 47 tools`() {
         val result = registry.getToolsForQuery("hello there")
         assertTrue(
             "Generic query should return fewer tools (got ${result.size})",
-            result.size < 46
+            result.size < 47
         )
     }
 }

@@ -2,11 +2,15 @@ package com.zeroclaw.zero.tools
 
 import android.content.Context
 import android.util.Log
+import com.zeroclaw.zero.data.ErrorDatabase
 
 private const val TAG = "ToolRegistry"
 
 class ToolRegistry(private val context: Context) {
     private val tools = mutableMapOf<String, Tool>()
+
+    /** Set by ZeroApp after init to enable error logging. */
+    var errorDatabase: ErrorDatabase? = null
 
     fun register(tool: Tool): ToolRegistry {
         tools[tool.definition.name] = tool
@@ -17,13 +21,33 @@ class ToolRegistry(private val context: Context) {
     fun unregister(name: String) { tools.remove(name) }
 
     fun execute(name: String, params: Map<String, Any?> = emptyMap()): ToolResult {
-        val tool = tools[name] ?: return ToolResult(false, error = "Unknown tool: $name")
+        val tool = tools[name] ?: return ToolResult(false, error = "Unknown tool: $name").also {
+            logError(name, params, it.error ?: "Unknown tool")
+        }
         return try {
-            tool.execute(params)
+            val result = tool.execute(params)
+            if (!result.success) {
+                logError(name, params, result.error ?: "Unknown error")
+            }
+            result
         } catch (e: Throwable) {
             Log.e(TAG, "Tool '$name' threw: ${e.message}", e)
-            ToolResult(false, error = "Tool error: ${e.message}")
+            val error = "Tool error: ${e.message}"
+            logError(name, params, error)
+            ToolResult(false, error = error)
         }
+    }
+
+    /**
+     * Log a tool error to the ErrorDatabase.
+     * Skips wf_* tools and query_error_log to prevent infinite recursion
+     * (logging an error could trigger a T0ggles call, which could fail, triggering another log...).
+     */
+    private fun logError(name: String, params: Map<String, Any?>, error: String) {
+        val db = errorDatabase ?: return
+        // Skip workflow proxy tools and the error log tool itself to prevent recursion
+        val skipT0ggles = name.startsWith("wf_") || name == "query_error_log"
+        db.recordError(name, params, error, logToT0ggles = !skipT0ggles)
     }
 
     fun getDefinitions(): List<ToolDefinition> =
@@ -65,14 +89,20 @@ class ToolRegistry(private val context: Context) {
         val gestureKeywords   = listOf("swipe", "scroll", "long tap", "long press", "gesture", "drag")
         val screenKeywords    = listOf("screenshot", "screen", "layout", "ui", "element", "find element",
                                        "wait for", "status", "device status")
+        val workflowKeywords  = listOf("task", "workflow", "todo", "backlog", "board",
+                                       "milestone", "note", "error", "log", "create task",
+                                       "update task", "next task", "standup", "report",
+                                       "workload", "overdue", "blocked", "dependency",
+                                       "comment", "status", "t0ggles", "toggles", "project")
 
         val wanted = core.toMutableSet()
 
-        if (contactKeywords.any { q.contains(it) })  addCategory("contacts", wanted)
-        if (deviceKeywords.any  { q.contains(it) })  addCategory("device",   wanted)
-        if (systemKeywords.any  { q.contains(it) })  addCategory("system",   wanted)
-        if (gestureKeywords.any { q.contains(it) })  addCategory("gesture",  wanted)
-        if (screenKeywords.any  { q.contains(it) })  addCategory("screen",   wanted)
+        if (contactKeywords.any  { q.contains(it) })  addCategory("contacts", wanted)
+        if (deviceKeywords.any   { q.contains(it) })  addCategory("device",   wanted)
+        if (systemKeywords.any   { q.contains(it) })  addCategory("system",   wanted)
+        if (gestureKeywords.any  { q.contains(it) })  addCategory("gesture",  wanted)
+        if (screenKeywords.any   { q.contains(it) })  addCategory("screen",   wanted)
+        if (workflowKeywords.any { q.contains(it) })  addCategory("workflow", wanted)
 
         val result = tools.values
             .filter { it.definition.name in wanted }
